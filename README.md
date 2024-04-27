@@ -521,3 +521,183 @@ Disini terdapat if else yang akan mengecek sesuai dari argumen yang diberikan sa
 ## Hasil akhir repository
 ![github-small](https://github.com/PuroFuro/image_for_sisop/blob/main/repo1.png)
 ![github-small](https://github.com/PuroFuro/image_for_sisop/blob/main/repo2.png)
+
+
+
+
+## [SOAL 4](https://docs.google.com/document/d/1tJdfzPwhWOJTU_xgI9ATl88raufFcRKuo6noh91jvN4/edit)
+
+#### a. Salomo memiliki passion yang sangat dalam di bidang sistem operasi. Saat ini, dia ingin mengotomasi kegiatan-kegiatan yang ia lakukan agar dapat bekerja secara efisien. Bantulah Salomo untuk membuat program yang dapat mengotomasi kegiatan dia!
+
+Buat file bernama setup.cpp sesuai kriteria soal nomor 4
+
+Definisikan library, variabel, dan buat struct untuk menyimpan nilai" yang akan dibutuhkan kedepannya
+
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#define MAX_APPS 100 // 
+
+typedef struct {
+    char nama[100];
+    int numWindows; 
+    pid_t *pids;   
+} Aplikasi;
+
+Aplikasi aplikasi_dibuka[MAX_APPS]; // Array untuk menyimpan informasi tentang aplikasi yang dibuka
+int num_app_dibuka = 0;   
+```
+Disini juga dibuat array untuk menyimpan informasi tentang aplikasi yang dibuka oleh program nantinya.
+
+
+#### b. Program dapat membuka berbagai macam aplikasi dan banyak jendela aplikasi sekaligus (bisa membuka 1 atau lebih aplikasi dengan 1 atau lebih window (kecuali aplikasi yang tidak bisa dibuka dengan banyak window seperti discord) dengan menjalankan: 
+`./setup -o <app1> <num1> <app2> <num2>.....<appN> <numN>`
+Contoh penggunaannya adalah sebagai berikut: 
+`./setup -o firefox 2 wireshark 2`
+Program akan membuka 2 jendela aplikasi firefox dan 2 jendela aplikasi wireshark.
+
+![github-small](https://github.com/bielnzar/sisop/blob/main/Modul2/ab.png)
+
+#### c. Program juga dapat membuka aplikasi dengan menggunakan file konfigurasi dengan menggunakan 
+`./setup -f file.conf`
+
+Format file konfigurasi dibebaskan, namun pastikan dapat menjalankan fitur dari poin 2.
+Contoh isi file.conf:
+`Firefox 2
+Wireshark 3`
+Ketika menjalankan command contoh, program akan membuka 2 jendela aplikasi firefox dan 3 jendela aplikasi wireshark.
+
+
+Fungsi pertama digunakan untuk membuka aplikasi. Tentunya menggunakan fork() dan execlp()
+
+Pada fungsi ini juga mengecek feedback dari fork, apabila feedback yang dikirim berupa nilai (-1), maka akan memberitahukan error, begitu juga jika (0) karena tidak memuat ppid, tetapi jika yg diinput itu bilangan positif. maka input dinyatakan benar. dan proses dilanjutkan.
+
+Di fungsi ini juga ID Proses atau PID dari aplikasi yang dibuka oleh program akan disimpan, agar kedepannya apabila ingin menutup aplikasi, bisa kill pid yang telah disimpan di variabel tertentu.
+
+Namun core dari fitur buka aplikasi juga terletak di fungsi main(). yang akan mengatur alur dari proses membuka aplikasi yang diinginkan.
+
+berikut code dari fungsi buka_aplikasi() :
+
+```
+
+void buka_aplikasi(const char *app, int numWindows) {
+    // Fork dan jalankan aplikasi
+    for (int i = 0; i < numWindows; i++) {
+        pid_t pid = fork();
+
+        if (pid == -1) {
+            perror("error fork");
+            exit(EXIT_FAILURE);
+        } 
+        else if (pid == 0) {
+            execlp(app, app, NULL);
+            perror("gagal execlp");
+            exit(EXIT_FAILURE);
+        } 
+        else {
+            // Simpan ID proses di array aplikasi_dibuka
+            aplikasi_dibuka[num_app_dibuka].pids = (pid_t *)realloc(aplikasi_dibuka[num_app_dibuka].pids, (i + 1) * sizeof(pid_t));
+            aplikasi_dibuka[num_app_dibuka].pids[i] = pid;
+        }
+    }
+    // Simpan informasi tentang aplikasi yang dibuka
+    strncpy(aplikasi_dibuka[num_app_dibuka].nama, app, sizeof(aplikasi_dibuka[num_app_dibuka].nama));
+    aplikasi_dibuka[num_app_dibuka].numWindows = numWindows;
+    num_app_dibuka++;
+}
+```
+
+![github-small](https://github.com/bielnzar/sisop/blob/main/Modul2/c.png)
+
+![github-small](https://github.com/bielnzar/sisop/blob/main/Modul2/c2.png)
+
+
+#### d. Program dapat mematikan semua aplikasi yg dijalankan oleh program tersebut dengan: 
+`./setup -k`
+#### e. Program juga dapat mematikan aplikasi yang dijalankan sesuai dengan file konfigurasi. 
+Contohnya: 
+`./setup -k file.conf` 
+Command ini hanya mematikan aplikasi yang dijalankan dengan 
+`./setup -f file.conf`
+
+Disini ada fungsi tutup_aplikasi(); untuk menutup semua aplikasi yang telah dibuka oleh program sebelumnya. Dalam fungsi ini di lakukan interpolasi untuk kill program aplikasi yang telah dibuka. kill mengakhiri proses pid yang sebelumnya sudah di inputkan dan disimpan oleh fungsi buka_aplikasi. disini kami memakai SIGKILL untuk kill program. Namun ada k endala, yaitu aplikasi belum juga tertutup ketika kami menjalankan fungsi tutup_aplikasi. Padahal proses sudah berjalan, tidak ada yang error, yang ditandakan oleh terminal yang tidak menampilkan error comment. Banyak yang harus kami teliti lagi, agar fungsi untuk menutup aplikasi ini bisa berjalan dengan sempurna.
+
+```
+void tutup_aplikasi() {
+    for (int i = 0; i < num_app_dibuka; i++) {
+        for (int j = 0; j < aplikasi_dibuka[i].numWindows; j++) {
+            kill(aplikasi_dibuka[i].pids[j], SIGKILL); // Kirim sinyal SIGKILL untuk mengakhiri proses
+        }
+        for (int j = 0; j < aplikasi_dibuka[i].numWindows; j++) {
+            waitpid(aplikasi_dibuka[i].pids[j], NULL, 0); // Tunggu proses untuk keluar
+        }
+        free(aplikasi_dibuka[i].pids);
+    }
+    num_app_dibuka = 0;
+}
+```
+![github-small](https://github.com/bielnzar/sisop/blob/main/Modul2/de.png)
+Core dari semua fungsi diatas ialah int main(); 
+
+bermula dari parameter `argc` dan `argv` yaitu argument count dan argument vector untuk menangkap dan memproses argumen baris perintah yang diberikan kepada program. 
+agar program bisa berjalan sesuai keinginan, maka argc dan argv akan memeriksa apakah input pengguna sudah benar atau belum, juga berfungsi untuk membedakan input pengguna sesuai fungsi yang diharapkan.
+
+```
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        fprintf(stderr, "Cara penggunaan: %s -f <file.conf> atau %s -o <app1> <num1> ...\n", argv[0], argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    if (strcmp(argv[1], "-f") == 0) {
+        if (argc != 3) {
+            fprintf(stderr, "Cara penggunaan: %s -f <file.conf>\n", argv[0]);
+            return EXIT_FAILURE;
+        }
+        char app[100];
+        int numWindows;
+        
+        FILE *file = fopen(argv[2], "r");
+        if (!file) {
+            perror("Gagal membuka file");
+            return EXIT_FAILURE;
+        }
+        while (fscanf(file, "%99s %d", app, &numWindows) == 2) {
+            buka_aplikasi(app, numWindows);
+        }
+        fclose(file);
+    } 
+
+    else if (strcmp(argv[1], "-o") == 0) {
+        if ((argc - 2) % 2 != 0 || argc < 4) {
+            fprintf(stderr, "Cara penggunaan: %s -o <app1> <num1> <app2> <num2> ... <appN> <numN>\n", argv[0]);
+            return EXIT_FAILURE;
+        }
+        for (int i = 2; i < argc; i += 2) {
+            buka_aplikasi(argv[i], atoi(argv[i + 1]));
+        }
+    }
+     
+    else if (strcmp(argv[1], "-k") == 0) {
+        if (argc != 2) {
+            fprintf(stderr, "Cara penggunaan: %s -k\n", argv[0]);
+            return EXIT_FAILURE;
+        }
+        tutup_aplikasi();
+    } 
+    else {
+        fprintf(stderr, "Opsi tidak valid '%s'\n", argv[1]);
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+```
+
+![github-small](https://github.com/bielnzar/sisop/blob/main/Modul2/main.png)
