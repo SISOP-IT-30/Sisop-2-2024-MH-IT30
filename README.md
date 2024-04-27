@@ -561,8 +561,6 @@ Contoh penggunaannya adalah sebagai berikut:
 `./setup -o firefox 2 wireshark 2`
 Program akan membuka 2 jendela aplikasi firefox dan 2 jendela aplikasi wireshark.
 
-![github-small](https://github.com/bielnzar/sisop/blob/main/Modul2/ab.png)
-
 #### c. Program juga dapat membuka aplikasi dengan menggunakan file konfigurasi dengan menggunakan 
 `./setup -f file.conf`
 
@@ -571,7 +569,6 @@ Contoh isi file.conf:
 `Firefox 2
 Wireshark 3`
 Ketika menjalankan command contoh, program akan membuka 2 jendela aplikasi firefox dan 3 jendela aplikasi wireshark.
-
 
 Fungsi pertama digunakan untuk membuka aplikasi. Tentunya menggunakan fork() dan execlp()
 
@@ -611,10 +608,15 @@ void buka_aplikasi(const char *app, int numWindows) {
     num_app_dibuka++;
 }
 ```
+![github-small](https://github.com/bielnzar/sisop/blob/main/Modul2/ab.png)
+
+Bisa dilihat pada gambar diatas bahwasannya aplikasi yang diinginkan sudah bisa dibuka dengan sempurna melalui command `./setup -o code 2 wireshark 2`. yang sudah berjalan membuka 2 vscode dan 2 wireshark secara langsung. 
 
 ![github-small](https://github.com/bielnzar/sisop/blob/main/Modul2/c.png)
 
 ![github-small](https://github.com/bielnzar/sisop/blob/main/Modul2/c2.png)
+
+Bisa dilihat pada gambar diatas bahwasannya aplikasi yang diinginkan sudah bisa dibuka dengan sempurna melalui command `./setup -f file.conf` 
 
 
 #### d. Program dapat mematikan semua aplikasi yg dijalankan oleh program tersebut dengan: 
@@ -642,6 +644,9 @@ void tutup_aplikasi() {
 }
 ```
 ![github-small](https://github.com/bielnzar/sisop/blob/main/Modul2/de.png)
+
+seperti yang sudah dijelaskan sebelunya. Program belum bisa menutup aplikasi dengan sempurna. padahal command sudah berjalan dan tidak ditemukan error.
+
 Core dari semua fungsi diatas ialah int main(); 
 
 bermula dari parameter `argc` dan `argv` yaitu argument count dan argument vector untuk menangkap dan memproses argumen baris perintah yang diberikan kepada program. 
@@ -701,3 +706,5 @@ int main(int argc, char *argv[]) {
 ```
 
 ![github-small](https://github.com/bielnzar/sisop/blob/main/Modul2/main.png)
+
+int main(), pusat dari program ini. yang dimana akan mengatur dan mengolah input pengguna. bisa dilihat di gambar, jika input yang dimasukkan itu salah, ngawur, ataupun asal"an. Maka terminal akan menampilkan error message berupa apa yang sebenarnya harus diinputkan oleh pengguna
